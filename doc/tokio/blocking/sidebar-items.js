@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["in_place","Run the provided blocking function without blocking the executor."],["spawn_blocking","Run the provided closure on a thread where blocking is acceptable."]]});
