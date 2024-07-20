@@ -11,12 +11,12 @@ use crate::util::{waker_ref, RngSeedGenerator, Wake, WakerRef};
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::fmt;
 use std::future::Future;
 use std::sync::atomic::Ordering::{AcqRel, Release};
 use std::task::Poll::{Pending, Ready};
 use std::task::Waker;
 use std::time::Duration;
+use std::{fmt, thread};
 
 /// Executes tasks on the current thread
 pub(crate) struct CurrentThread {
@@ -123,6 +123,7 @@ impl CurrentThread {
         config: Config,
     ) -> (CurrentThread, Arc<Handle>) {
         let worker_metrics = WorkerMetrics::from_config(&config);
+        worker_metrics.set_thread_id(thread::current().id());
 
         // Get the configured global queue interval, or use the default.
         let global_queue_interval = config
