@@ -68,6 +68,7 @@ impl Driver {
     }
 
     pub(crate) fn park(&mut self, handle: &Handle) {
+        eprintln!("driver inner park");
         self.inner.park(handle);
     }
 
@@ -171,6 +172,8 @@ cfg_io_driver! {
         }
 
         pub(crate) fn park(&mut self, handle: &Handle) {
+            eprintln!("IoStack park");
+
             match self {
                 IoStack::Enabled(v) => v.park(handle),
                 IoStack::Disabled(v) => v.park(),
@@ -178,9 +181,16 @@ cfg_io_driver! {
         }
 
         pub(crate) fn park_timeout(&mut self, handle: &Handle, duration: Duration) {
+            eprintln!("IoStack park_timeout");
             match self {
-                IoStack::Enabled(v) => v.park_timeout(handle, duration),
-                IoStack::Disabled(v) => v.park_timeout(duration),
+                IoStack::Enabled(v) => {
+                    eprintln!("iostack::park_timeout enabled");
+                    v.park_timeout(handle, duration)
+                },
+                IoStack::Disabled(v) => {
+                    eprintln!("iostack::park_timeout disabled");
+                    v.park_timeout(duration)
+                }
             }
         }
 
@@ -223,10 +233,12 @@ cfg_not_io_driver! {
 
     impl IoStack {
         pub(crate) fn park(&mut self, _handle: &Handle) {
+            eprintln!("not io driver park");
             self.0.park();
         }
 
         pub(crate) fn park_timeout(&mut self, _handle: &Handle, duration: Duration) {
+            eprintln!("not io driver park_timeout");
             self.0.park_timeout(duration);
         }
 
@@ -328,9 +340,16 @@ cfg_time! {
         }
 
         pub(crate) fn park(&mut self, handle: &Handle) {
+            eprintln!("TimeDriver park");
             match self {
-                TimeDriver::Enabled { driver, .. } => driver.park(handle),
-                TimeDriver::Disabled(v) => v.park(handle),
+                TimeDriver::Enabled { driver, .. } => {
+                    eprintln!("enabled park");
+                    driver.park(handle)
+                }
+                TimeDriver::Disabled(v) => {
+                    eprintln!("disabled park");
+                    v.park(handle)
+                }
             }
         }
 

@@ -194,12 +194,14 @@ where
     type Output = Result<T::Output, Elapsed>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Self::Output> {
+        eprintln!("Timeout entry");
         let me = self.project();
 
         let had_budget_before = coop::has_budget_remaining();
 
         // First, try polling the future
         if let Poll::Ready(v) = me.value.poll(cx) {
+            eprintln!("Timeout value ready");
             return Poll::Ready(Ok(v));
         }
 
@@ -208,9 +210,16 @@ where
         let delay = me.delay;
 
         let poll_delay = || -> Poll<Self::Output> {
+            eprintln!("Timeout poll_delay");
             match delay.poll(cx) {
-                Poll::Ready(()) => Poll::Ready(Err(Elapsed::new())),
-                Poll::Pending => Poll::Pending,
+                Poll::Ready(()) => {
+                    eprintln!("Timeout poll_delay ready");
+                    Poll::Ready(Err(Elapsed::new()))
+                }
+                Poll::Pending => {
+                    eprintln!("Timeout poll_delay pending");
+                    Poll::Pending
+                }
             }
         };
 

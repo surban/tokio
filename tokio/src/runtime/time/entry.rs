@@ -144,6 +144,7 @@ impl StateCell {
         // We must register first. This ensures that either `fire` will
         // observe the new waker, or we will observe a racing fire to have set
         // the state, or both.
+        eprintln!("register waker");
         self.waker.register_by_ref(waker);
 
         self.read_state()

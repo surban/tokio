@@ -63,14 +63,23 @@ impl ParkThread {
     }
 
     pub(crate) fn park_timeout(&mut self, duration: Duration) {
+        eprintln!("ParkThread::park_timeout");
+        
         #[cfg(loom)]
         CURRENT_THREAD_PARK_COUNT.with(|count| count.fetch_add(1, SeqCst));
 
         // Wasm doesn't have threads, so just sleep.
-        #[cfg(not(target_family = "wasm"))]
-        self.inner.park_timeout(duration);
-        #[cfg(target_family = "wasm")]
-        std::thread::sleep(duration);
+        //#[cfg(not(target_family = "wasm"))]
+        //{
+            eprintln!("inner.park_timeout");
+            self.inner.park_timeout(duration);
+        //}
+
+        // #[cfg(target_family = "wasm")]
+        // {
+        //     eprintln!("wasm sleep");
+        //     std::thread::sleep(duration);
+        // }
     }
 
     pub(crate) fn shutdown(&mut self) {
@@ -178,9 +187,16 @@ impl Inner {
         // is already `NOTIFIED`. That is why this must be a swap rather than a
         // compare-and-swap that returns if it reads `NOTIFIED` on failure.
         match self.state.swap(NOTIFIED, SeqCst) {
-            EMPTY => return,    // no one was waiting
-            NOTIFIED => return, // already unparked
-            PARKED => {}        // gotta go wake someone up
+            EMPTY => {
+                eprintln!("unpark EMPTY");
+                return}
+                ,    // no one was waiting
+            NOTIFIED => {
+                eprintln!("unpark NOTIFIED");
+                return}, // already unparked
+            PARKED => {
+                eprintln!("unpark PARKED");
+            }        // gotta go wake someone up
             _ => panic!("inconsistent state in unpark"),
         }
 
@@ -215,6 +231,7 @@ impl Default for ParkThread {
 
 impl UnparkThread {
     pub(crate) fn unpark(&self) {
+        eprintln!("io disabled unpark");
         self.inner.unpark();
     }
 }

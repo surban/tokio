@@ -193,6 +193,8 @@ impl Driver {
     }
 
     fn park_internal(&mut self, rt_handle: &driver::Handle, limit: Option<Duration>) {
+        eprintln!("time park_internal");
+
         let handle = rt_handle.time();
         assert!(!handle.is_shutdown());
 
@@ -213,6 +215,7 @@ impl Driver {
 
             expiration_time
         };
+        eprintln!("expiration time: {expiration_time:?}");
 
         match expiration_time {
             Some(when) => {
@@ -229,6 +232,7 @@ impl Driver {
                         duration = std::cmp::min(limit, duration);
                     }
 
+                    eprintln!("parking thread for {duration:?}");
                     self.park_thread_timeout(rt_handle, duration);
                 } else {
                     self.park.park_timeout(rt_handle, Duration::from_secs(0));
@@ -249,6 +253,8 @@ impl Driver {
 
     cfg_test_util! {
         fn park_thread_timeout(&mut self, rt_handle: &driver::Handle, duration: Duration) {
+            eprintln!("park_thread_timeout test");
+
             let handle = rt_handle.time();
             let clock = rt_handle.clock();
 
@@ -273,7 +279,11 @@ impl Driver {
 
     cfg_not_test_util! {
         fn park_thread_timeout(&mut self, rt_handle: &driver::Handle, duration: Duration) {
+            eprintln!("park_thread_timeout not test");
+
             self.park.park_timeout(rt_handle, duration);
+
+            eprintln!("park_thread_timeout not test after!!!");
         }
     }
 }

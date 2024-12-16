@@ -369,10 +369,13 @@ impl Context {
     /// Blocks the current thread until an event is received by the driver,
     /// including I/O events, timer events, ...
     fn park(&self, mut core: Box<Core>, handle: &Handle) -> Box<Core> {
+        eprintln!("Context::park");
         let mut driver = core.driver.take().expect("driver missing");
 
         if let Some(f) = &handle.shared.config.before_park {
+            eprintln!("before park");
             let (c, ()) = self.enter(core, || f());
+            eprintln!("before park done");
             core = c;
         }
 
@@ -380,25 +383,32 @@ impl Context {
         // instead of parking the thread
         if core.tasks.is_empty() {
             // Park until the thread is signaled
+            eprintln!("about to park");
             core.metrics.about_to_park();
             core.submit_metrics(handle);
 
             let (c, ()) = self.enter(core, || {
+                eprintln!("driver park");
                 driver.park(&handle.driver);
+                eprintln!("defer wake");
                 self.defer.wake();
             });
 
             core = c;
 
+            eprintln!("unparked");
             core.metrics.unparked();
             core.submit_metrics(handle);
         }
 
         if let Some(f) = &handle.shared.config.after_unpark {
+            eprintln!("after unpark");
             let (c, ()) = self.enter(core, || f());
             core = c;
+            eprintln!("after unpark done");
         }
 
+        eprintln!("Context::park done");
         core.driver = Some(driver);
         core
     }
@@ -696,6 +706,7 @@ impl Wake for Handle {
 
     /// Wake by reference
     fn wake_by_ref(arc_self: &Arc<Self>) {
+        eprintln!("tokio::wake_by_ref");
         arc_self.shared.woken.store(true, Release);
         arc_self.driver.unpark();
     }
@@ -725,6 +736,7 @@ impl CoreGuard<'_> {
                 let handle = &context.handle;
 
                 if handle.reset_woken() {
+                    eprintln!("#### polling future ####");
                     let (c, res) = context.enter(core, || {
                         crate::runtime::coop::budget(|| future.as_mut().poll(&mut cx))
                     });
@@ -732,34 +744,46 @@ impl CoreGuard<'_> {
                     core = c;
 
                     if let Ready(v) = res {
+                        eprintln!("polled future ready");
                         return (core, Some(v));
                     }
+                    eprintln!("####  polled future pending #### ");
                 }
 
                 for _ in 0..handle.shared.config.event_interval {
+                    eprintln!("in event interval");
                     // Make sure we didn't hit an unhandled_panic
                     if core.unhandled_panic {
                         return (core, None);
                     }
 
+                    eprintln!("core tick");
                     core.tick();
 
+                    eprintln!("core next_task");
                     let entry = core.next_task(handle);
 
                     let task = match entry {
                         Some(entry) => entry,
                         None => {
+                            eprintln!("no task");
+
+                            eprintln!("end_processing_scheduled_tasks");
                             core.metrics.end_processing_scheduled_tasks();
 
                             core = if !context.defer.is_empty() {
+                                eprintln!("context park_yield");
                                 context.park_yield(core, handle)
                             } else {
+                                eprintln!("context park");
                                 context.park(core, handle)
                             };
 
+                            eprintln!("start_processing_scheduled_tasks");
                             core.metrics.start_processing_scheduled_tasks();
 
                             // Try polling the `block_on` future next
+                            eprintln!("event continue outer");
                             continue 'outer;
                         }
                     };
@@ -767,11 +791,14 @@ impl CoreGuard<'_> {
                     let task = context.handle.shared.owned.assert_owner(task);
 
                     let (c, ()) = context.run_task(core, || {
+                        eprintln!("running task");
                         task.run();
+                        eprintln!("done running task");
                     });
 
                     core = c;
                 }
+                eprintln!("event loop done");
 
                 core.metrics.end_processing_scheduled_tasks();
 

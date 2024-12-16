@@ -204,6 +204,8 @@ impl Handle {
     /// blocked in `turn`, then the next call to `turn` will not block and
     /// return immediately.
     pub(crate) fn unpark(&self) {
+        eprintln!("io enabled unpark");
+
         #[cfg(not(target_os = "wasi"))]
         self.waker.wake().expect("failed to wake I/O driver");
     }

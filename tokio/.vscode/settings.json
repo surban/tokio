@@ -1,0 +1,16 @@
+{
+    "rust-analyzer.cargo.noDefaultFeatures": true,
+    "rust-analyzer.cargo.features": [
+        "macros", "rt", "time"
+    ],
+    "rust-analyzer.check.noDefaultFeatures": true,
+    "rust-analyzer.check.features": [
+        "macros", "rt", "time"
+
+    ],
+    "rust-analyzer.cargo.target": "wasm32-wasip1",
+    "rust-analyzer.cargo.extraEnv": {
+        // "RUSTFLAGS": "--cfg tokio_unstable"
+        "RUSTUP_TOOLCHAIN": "nightly"
+    },
+}
